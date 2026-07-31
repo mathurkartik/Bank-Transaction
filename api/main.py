@@ -82,6 +82,7 @@ def load_data():
         pass
 
     # High-Fidelity Dynamic Cloud Simulation Fallback
+    np.random.seed(42)
     indian_cities = ['Mumbai', 'Delhi', 'Bangalore', 'Hyderabad', 'Ahmedabad', 'Chennai', 'Kolkata', 'Surat', 'Pune', 'Jaipur']
     zones = ['Main Branch', 'North Branch', 'East Branch', 'West Branch', 'South Branch', 'Central Branch', 'IT Park Branch']
     branch_rows = []

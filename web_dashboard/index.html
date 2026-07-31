@@ -263,7 +263,17 @@
         }
 
         function updateBranchChart(branches) {
-            const labels = branches.map(b => b.branch_name);
+            const nameTracker = {};
+            const labels = branches.map(b => {
+                let name = b.branch_name || 'Branch';
+                if (nameTracker[name]) {
+                    nameTracker[name]++;
+                    return `${name} (${b.branch_id || 'Zone-' + nameTracker[name]})`;
+                } else {
+                    nameTracker[name] = 1;
+                    return name;
+                }
+            });
             const values = branches.map(b => b.net_income);
 
             if (branchChart) branchChart.destroy();
