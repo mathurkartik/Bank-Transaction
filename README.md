@@ -1,3 +1,5 @@
+
+
 # 🏦 Aura Bank Financial Analytics Platform
 
 A complete financial data lake and analytics platform running locally in Docker. This platform integrates Kaggle customer segmentation data with synthetic financial transactions, processes it using PySpark, schedules via Apache Airflow, stores it in PostgreSQL, and visualizes it in a high-fidelity Streamlit dashboard.
@@ -76,3 +78,8 @@ Open the Streamlit application: http://localhost:8501
 - **Data Warehouse**: PostgreSQL 13
 - **Visualization**: Streamlit 1.28.0 + Plotly
 - **Environment**: Docker & Docker Compose
+
+
+
+
+ 
