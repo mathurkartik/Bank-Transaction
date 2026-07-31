@@ -1,5 +1,6 @@
 from pyspark.sql import SparkSession, DataFrame
-from pyspark.sql.functions import col, when, expr, current_timestamp, rand, lit
+from pyspark.sql.functions import col, when, expr, current_timestamp, rand, lit, udf
+from pyspark.sql.types import FloatType
 from pyspark.ml.feature import VectorAssembler, StringIndexer
 from pyspark.ml.classification import LogisticRegression
 from pyspark.ml import Pipeline
@@ -69,12 +70,12 @@ def train_and_predict_loan_defaults(spark: SparkSession = None, base_path: str =
         model = pipeline.fit(ml_df)
         predictions = model.transform(ml_df)
 
-        # Extract probability of default (class 1)
-        # Vector probability is [prob_0, prob_1], so we use expression to get prob_1
-        get_prob_1 = expr("vector_to_array(probability)[1]")
+        # Extract probability of default (class 1) using native PySpark vector_to_array
+        from pyspark.ml.functions import vector_to_array
 
         scored_df = predictions \
-            .withColumn("default_probability", get_prob_1) \
+            .withColumn("prob_array", vector_to_array(col("probability"))) \
+            .withColumn("default_probability", col("prob_array")[1]) \
             .withColumn("risk_rating",
                        when(col("default_probability") < 0.25, "Low")
                        .when(col("default_probability") < 0.55, "Moderate")

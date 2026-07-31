@@ -4,7 +4,10 @@ import logging
 logger = logging.getLogger(__name__)
 
 def create_spark_session(app_name):
-    """Create local Spark session"""
+    """Create Spark session configured for MinIO S3A object storage & Iceberg"""
+    import os
+    s3_endpoint = "http://minio:9000" if os.path.exists("/opt/airflow") else "http://localhost:9000"
+    
     try:
         spark = SparkSession.builder \
             .appName(app_name) \
@@ -12,11 +15,20 @@ def create_spark_session(app_name):
             .config("spark.sql.adaptive.coalescePartitions.enabled", "true") \
             .config("spark.serializer", "org.apache.spark.serializer.KryoSerializer") \
             .config("spark.sql.parquet.compression.codec", "snappy") \
-            .config("spark.jars.packages", "org.postgresql:postgresql:42.5.4") \
+            .config("spark.jars.packages", "org.postgresql:postgresql:42.5.4,org.apache.hadoop:hadoop-aws:3.3.4") \
+            .config("spark.hadoop.fs.s3a.endpoint", s3_endpoint) \
+            .config("spark.hadoop.fs.s3a.access.key", "minioadmin") \
+            .config("spark.hadoop.fs.s3a.secret.key", "minioadmin") \
+            .config("spark.hadoop.fs.s3a.path.style.access", "true") \
+            .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem") \
+            .config("spark.sql.extensions", "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions") \
+            .config("spark.sql.catalog.local_iceberg", "org.apache.iceberg.spark.SparkCatalog") \
+            .config("spark.sql.catalog.local_iceberg.type", "hadoop") \
+            .config("spark.sql.catalog.local_iceberg.warehouse", "data/iceberg_warehouse") \
             .master("local[*]") \
             .getOrCreate()
         
-        logger.info(f"Spark session created for {app_name}")
+        logger.info(f"Spark session created for {app_name} with S3A MinIO support")
         return spark
         
     except Exception as e:
