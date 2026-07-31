@@ -84,12 +84,12 @@ The system is engineered using a modern **Medallion Data Lakehouse** architectur
 
 ---
 
-## 📊 4. Product Capabilities & Metrics Achieved
+## 📊 4. Technical Design Decisions & Trade-offs
 
-| Product Requirement | Technical Solution | Business Impact |
+| System Requirement | Technical Solution Chosen | Design Decision & Architectural Trade-off |
 | :--- | :--- | :--- |
-| **Zero-Latency Financial Metrics** | FastAPI REST Endpoints + Vercel Live Polling | Executive decision-making time reduced from days to **5 seconds**. |
-| **High System Throughput** | Apache Kafka Producer (450 txns/min ~ 7.5 TPS) | Handles real-time transaction velocity of 62+ branch offices. |
-| **Zero Data Duplication** | 128-bit UUIDv4 Primary Keys + Spark Quality Gate | **100% data uniqueness** verified via automated PyTest suite. |
-| **NPA Early Warning Alerts** | PySpark MLlib GBT Risk Categorizer | Proactively identifies high-risk loans to protect capital reserves. |
-| **High Availability & Reliability** | Render Cloud + Dynamic Simulation Fallback | **100% uptime** for live dashboard presentations. |
+| **Data Provenance & Trust** | REST Endpoints + Fallback Banner | Explicitly flags when data is synthetic or fallback demo mode (`⚠️ NOTICE: DEMO DATASET IS SYNTHETICALLY DERIVED`) to maintain transparency. |
+| **Real-Time Event Streaming** | Apache Kafka Producer & Spark Streaming | ~7.5 TPS is well below the threshold (~1,000+ TPS) where real-time streaming earns its operational cost over batch; used strictly to demonstrate streaming semantics (watermarking, sliding windows). |
+| **Data Quality & Compliance** | PySpark In-Pipeline Quality Gate | Quarantines bad records to `data/quarantine/` instead of dropping them. Preserves audit lineage at the cost of storage & pipeline complexity. |
+| **Lakehouse Governance** | 3-Tier Medallion Architecture (Bronze/Silver/Gold) | Isolates raw data, cleansed entities, and business aggregations. Improves governance at the cost of duplicate storage and multi-stage compute latency. |
+| **High Availability** | Render Cloud + Fast API Service | Provides high availability for web demo purposes; fallback simulation guarantees uptime when persistent warehouse storage is unattached. |

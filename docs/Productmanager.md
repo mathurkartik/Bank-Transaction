@@ -48,12 +48,12 @@ Here are 4 strategic product enhancements to expand the platform's commercial va
 ## 🗣️ How to Pitch This Project in PM / TPM Interviews
 
 ### 1. The Elevator Pitch (30 Seconds):
-> *"I owned the product vision and implementation of an Enterprise Financial Analytics & ML Risk Platform for retail banking. I identified two critical business problems: high branch cost-to-income ratios and delayed default risk detection. I defined product requirements for a Medallion Lakehouse, PySpark ML predictive risk model, and a real-time streaming engine (450 txns/min). I delivered live executive dashboards deployed on Vercel and Render that auto-update key financial KPIs every 5 seconds."*
+> *"I built this technical-PM portfolio artifact to demonstrate product decision-making across an Enterprise Data Lakehouse, PySpark ML pipeline, and real-time streaming architecture. Grounded in a 1.04M row real Kaggle transaction dataset with synthetically derived financial extensions, I evaluated design trade-offs—such as quarantining vs. dropping invalid records, medallion layer depth vs. storage redundancy, and batch vs. streaming thresholds (~7.5 TPS vs. 1,000+ TPS). I delivered live web dashboards deployed on Vercel and Render with explicit fallback transparency."*
 
 ### 2. Answering PM Interview Questions:
 
-* **Question: How do you prioritize features?**
-  * *Answer*: *"I use the RICE framework (Reach, Impact, Confidence, Effort). For example, I prioritized the PySpark ML Loan Risk Engine over UI animations because early NPA detection directly protects millions in capital reserves, delivering higher business impact."*
+* **Question: How do you evaluate streaming vs. batch for a data product?**
+  * *Answer*: *"I evaluate infrastructure complexity against operational value. At ~7.5 TPS (450 txns/min), real-time streaming is operationally unjustifiable over scheduled batch. Streaming earns its operational cost over batch when transaction volumes exceed 1,000–5,000+ TPS or when sub-second SLA requirements exist for automated fraud blocking."*
 
 * **Question: How do you measure success for this data product?**
-  * *Answer*: *"I track 3 core metrics: 1) Executive Time-to-Insight (reduced from daily batch reports to 5-second live updates), 2) Predictive Risk Precision (classifying default risk with PySpark GBT), and 3) Platform Reliability (100% API uptime with dynamic simulation fallbacks)."*
+  * *Answer*: *"For a Chief Data Officer or Chief Risk Officer, success is measured by: 1) Data Lineage & Auditability (quarantining bad records to preserve lineage), 2) Provisioning & Reserve Accuracy (validating ML risk models against realized defaults), and 3) Transparency & Trust (explicitly flagging fallback demo data)."*
