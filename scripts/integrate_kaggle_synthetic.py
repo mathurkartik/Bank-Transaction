@@ -309,7 +309,8 @@ class KaggleDataIntegrator:
         missing_mask = branch_id.isna()
         if missing_mask.any():
             random_branches = [f"BR_{i:03d}" for i in range(10, 51)]
-            branch_id[missing_mask] = np.random.choice(random_branches, size=missing_mask.sum())
+            fallback_branches = pd.Series(np.random.choice(random_branches, size=len(branch_id)), index=branch_id.index)
+            branch_id = branch_id.fillna(fallback_branches)
             
         original_txns = pd.DataFrame({
             'transaction_id': kaggle_customers['transaction_id'],
