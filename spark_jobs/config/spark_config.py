@@ -23,10 +23,13 @@ def create_spark_session(app_name):
         logger.error(f"Failed to create Spark session: {str(e)}")
         raise
 
+import os
+
 def get_postgres_config():
-    """Get PostgreSQL connection configuration"""
+    """Get PostgreSQL connection configuration dynamically based on environment"""
+    host = "postgres-warehouse" if os.path.exists("/opt/airflow") else "localhost"
     return {
-        "url": "jdbc:postgresql://postgres-warehouse:5432/bank_warehouse",
+        "url": f"jdbc:postgresql://{host}:5432/bank_warehouse",
         "user": "airflow",
         "password": "airflow",
         "driver": "org.postgresql.Driver"

@@ -24,13 +24,23 @@ class KaggleDataIntegrator:
         
     def load_and_clean_kaggle_data(self, kaggle_path, nrows=None):
         """
-        Optimized load and clean of Kaggle Bank Transactions dataset
+        Optimized load and clean of Kaggle Bank Transactions dataset with random chunk sampling
         """
         start_time = time.time()
         logger.info(f"Loading Kaggle dataset from: {kaggle_path}")
         
         try:
-            # Load with optimized parameters
+            skip_offset = 0
+            if nrows is not None and nrows > 0:
+                # Randomly sample offset chunk to ensure data variety across runs
+                import random
+                max_possible_skip = max(0, 1000000 - nrows - 100)
+                skip_offset = random.randint(0, max_possible_skip)
+                logger.info(f"🎲 Random Kaggle Chunk Sampling: skipping first {skip_offset:,} rows for dataset variety.")
+
+            # Load with optimized parameters and random chunk skip
+            skip_func = (lambda x: x > 0 and x < skip_offset) if skip_offset > 0 else None
+            
             kaggle_df = pd.read_csv(
                 kaggle_path, 
                 dtype={
@@ -40,6 +50,7 @@ class KaggleDataIntegrator:
                     'TransactionID': 'string'
                 },
                 nrows=nrows,
+                skiprows=skip_func,
                 low_memory=False
             )
             
@@ -424,8 +435,8 @@ class KaggleDataIntegrator:
         
         return pd.DataFrame(cost_data)
     
-    def _generate_cost_amount(self, category):
-        """Generate realistic cost amounts"""
+    def _generate_cost_amount(self, category, branch_id="BR_001"):
+        """Generate realistic cost amounts scaled by branch tier/location"""
         base_amounts = {
             'STAFF_SALARIES': 20000,
             'TECHNOLOGY': 10000,
@@ -434,12 +445,14 @@ class KaggleDataIntegrator:
             'COMPLIANCE': 8000
         }
         
-        base = base_amounts.get(category, 5000)
+        # Metro branches (BR_001 - BR_009) have higher operating expenses
+        metro_multiplier = 1.8 if branch_id in [f"BR_{i:03d}" for i in range(1, 10)] else 1.0
+        base = base_amounts.get(category, 5000) * metro_multiplier
         amount = np.random.lognormal(np.log(base), 0.4)
         return round(amount, 2)
     
     def _generate_loan_data(self, customer_ids):
-        """Optimized loan data generation (vectorized)"""
+        """Optimized loan data generation (vectorized & credit-score correlated)"""
         # Generate loans for a 20% sample of customers
         customers_with_loans = np.random.choice(
             customer_ids, 
@@ -452,7 +465,13 @@ class KaggleDataIntegrator:
         loan_df['loan_amount'] = np.round(np.random.uniform(100000, 2000000, size=n_loans), 2)
         loan_df['outstanding_balance'] = np.round(loan_df['loan_amount'] * np.random.uniform(0.2, 0.8, size=n_loans), 2)
         loan_df['loan_id'] = [f"LOAN_{i:06d}" for i in range(1, n_loans + 1)]
-        loan_df['interest_rate'] = np.round(np.random.uniform(0.09, 0.14, size=n_loans), 4)
+        
+        # Interest rate correlated with credit score (higher score = lower interest rate)
+        credit_scores = np.random.randint(350, 800, size=n_loans)
+        base_interest = 0.16 - ((credit_scores - 350) / 450.0) * 0.07  # 9% to 16% range
+        noise = np.random.normal(0, 0.005, size=n_loans)
+        loan_df['interest_rate'] = np.round(np.clip(base_interest + noise, 0.085, 0.18), 4)
+        
         loan_df['loan_type'] = np.random.choice(
             ['HOME_LOAN', 'PERSONAL_LOAN', 'CAR_LOAN', 'EDUCATION_LOAN'], 
             size=n_loans
