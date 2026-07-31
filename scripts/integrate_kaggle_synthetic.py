@@ -493,16 +493,23 @@ class KaggleDataIntegrator:
         return loan_df[cols_to_keep]
     
     def _generate_branch_data(self):
-        """Optimized branch data generation"""
+        """Optimized branch data generation with monthly expansion (+2 new branches/month)"""
         branch_data = []
         indian_cities = [
             'Mumbai', 'Delhi', 'Bangalore', 'Hyderabad', 'Ahmedabad', 
             'Chennai', 'Kolkata', 'Surat', 'Pune', 'Jaipur',
-            'Lucknow', 'Kanpur', 'Nagpur', 'Patna', 'Indore'
+            'Lucknow', 'Kanpur', 'Nagpur', 'Patna', 'Indore',
+            'Bhopal', 'Vadodara', 'Coimbatore', 'Ludhiana', 'Agra',
+            'Nashik', 'Ranchi', 'Faridabad', 'Meerut', 'Rajkot',
+            'Kochi', 'Varanasi', 'Srinagar', 'Aurangabad', 'Dhanbad'
         ]
         regions = ['NORTH', 'SOUTH', 'EAST', 'WEST']
         
-        for i in range(1, 51):
+        # Base 50 branches + monthly expansion (+2 branches per month over past 6 months = 62 total)
+        total_branches = 62
+        today = datetime.now().date()
+        
+        for i in range(1, total_branches + 1):
             if i <= len(indian_cities):
                 city = indian_cities[i-1]
                 region = regions[(i-1) % 4]
@@ -510,16 +517,27 @@ class KaggleDataIntegrator:
                 city = fake.city() + ', India'
                 region = np.random.choice(regions)
             
+            # Opening dates: Branches 1-50 opened 1-15 yrs ago. Expansion branches 51-62 opened 1-6 months ago (+2/month)
+            if i <= 50:
+                open_date = fake.date_between(start_date='-15y', end_date='-1y')
+            else:
+                months_ago = (i - 50) // 2 + 1
+                open_date = today - timedelta(days=30 * months_ago)
+            
+            # Metro cost multiplier for top 9 cities
+            metro_mult = 1.8 if i <= 9 else 1.0
+            operating_cost = int(np.random.randint(500000, 2000000) * metro_mult)
+            
             branch_data.append({
                 'branch_id': f"BR_{i:03d}",
                 'branch_name': f"{city} Main Branch",
                 'city': city,
                 'region': region,
                 'country': 'India',
-                'opening_date': fake.date_between(start_date='-15y', end_date='-1y'),
+                'opening_date': open_date,
                 'branch_manager': fake.name(),
                 'staff_count': np.random.randint(8, 50),
-                'monthly_operating_cost': np.random.randint(500000, 2000000)
+                'monthly_operating_cost': operating_cost
             })
         
         return pd.DataFrame(branch_data)
