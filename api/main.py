@@ -83,16 +83,18 @@ def load_data():
 
     # High-Fidelity Dynamic Cloud Simulation Fallback
     indian_cities = ['Mumbai', 'Delhi', 'Bangalore', 'Hyderabad', 'Ahmedabad', 'Chennai', 'Kolkata', 'Surat', 'Pune', 'Jaipur']
+    zones = ['Main Branch', 'North Branch', 'East Branch', 'West Branch', 'South Branch', 'Central Branch', 'IT Park Branch']
     branch_rows = []
-    for i in range(1, 51):
+    for i in range(1, 63):
         city = indian_cities[(i-1) % len(indian_cities)]
+        zone = zones[((i-1) // len(indian_cities)) % len(zones)]
         rev = float(np.random.normal(64000000, 15000000))
         costs_val = float(rev * np.random.uniform(0.42, 0.68))
         net = rev - costs_val
         ratio = costs_val / rev
         branch_rows.append({
             'branch_id': f"BR_{i:03d}",
-            'branch_name': f"{city} Main Branch",
+            'branch_name': f"{city} {zone}",
             'city': city,
             'total_revenue': rev,
             'total_costs': costs_val,

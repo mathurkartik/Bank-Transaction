@@ -158,16 +158,9 @@
         </div>
     </div>
 
-    <!-- Reliability & Data Provenance Banner -->
-    <div id="fallbackNoticeBanner" style="display: block; background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.4); color: #FBBF24; padding: 0.75rem 1.25rem; border-radius: 10px; font-size: 0.85rem; font-weight: 700; margin-bottom: 1.5rem; text-align: center;">
-        ⚠️ NOTICE: DEMO DATASET IS SYNTHETICALLY DERIVED (FALLBACK DEMO MODE) | REAL BASE: 1,048,567 KAGGLE ROWS
-    </div>
-
-    <!-- Live API URL Controller -->
-    <div class="api-input-bar">
-        <label style="font-size:0.85rem; color:#94A3B8; font-weight:600;">BACKEND API ENDPOINT:</label>
-        <input type="text" id="apiUrl" class="api-input" value="https://aura-bank-api.onrender.com">
-        <button onclick="fetchData()" class="btn">Connect & Refresh</button>
+    <!-- Reliability & Data Provenance Banner (Hidden on live data, visible only on fallback) -->
+    <div id="fallbackNoticeBanner" style="display: none; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.3); color: #FBBF24; padding: 0.6rem 1.25rem; border-radius: 8px; font-size: 0.85rem; font-weight: 500; margin-bottom: 1.5rem; text-align: center;">
+        ℹ️ Notice: Backend API unavailable — displaying fallback simulation metrics
     </div>
 
     <!-- KPI Metric Cards Row -->
@@ -212,6 +205,7 @@
 
     <script>
         let branchChart, riskChart;
+        const API_BASE_URL = "https://aura-bank-api.onrender.com";
 
         function formatCrores(amount) {
             if (isNaN(amount) || amount === null || amount === undefined || Number(amount) === 0) {
@@ -221,12 +215,13 @@
         }
 
         async function fetchData() {
-            const rawUrl = document.getElementById('apiUrl').value.trim();
-            const baseUrl = rawUrl.replace(/\/+$/, "");
+            const banner = document.getElementById('fallbackNoticeBanner');
+            const badge = document.getElementById('statusBadge');
             
             try {
                 // 1. Fetch Executive Metrics
-                const resExec = await fetch(`${baseUrl}/api/v1/metrics/executive`);
+                const resExec = await fetch(`${API_BASE_URL}/api/v1/metrics/executive`);
+                if (!resExec.ok) throw new Error("API Network Error");
                 const dataExec = await resExec.json();
                 
                 if (dataExec && dataExec.total_revenue) {
@@ -235,24 +230,35 @@
                     document.getElementById('netIncome').innerText = formatCrores(dataExec.net_income);
                     const cir = isNaN(dataExec.cost_income_ratio) ? 0.531 : Number(dataExec.cost_income_ratio);
                     document.getElementById('cirValue').innerText = (cir * 100).toFixed(1) + '%';
+                    
+                    // Connected to live backend: Hide fallback banner
+                    if (banner) banner.style.display = 'none';
+                    if (badge) badge.innerHTML = '<div class="pulse"></div> LIVE POLLING AGENT';
                 }
 
                 // 2. Fetch Branch Performance
-                const resBranch = await fetch(`${baseUrl}/api/v1/branches/performance`);
-                const dataBranch = await resBranch.json();
-                if (dataBranch && dataBranch.top_5_branches) {
-                    updateBranchChart(dataBranch.top_5_branches);
+                const resBranch = await fetch(`${API_BASE_URL}/api/v1/branches/performance`);
+                if (resBranch.ok) {
+                    const dataBranch = await resBranch.json();
+                    if (dataBranch && dataBranch.top_5_branches) {
+                        updateBranchChart(dataBranch.top_5_branches);
+                    }
                 }
 
                 // 3. Fetch PySpark ML Risk Distribution
-                const resRisk = await fetch(`${baseUrl}/api/v1/ml/loan-risk`);
-                const dataRisk = await resRisk.json();
-                if (dataRisk && dataRisk.risk_distribution) {
-                    updateRiskChart(dataRisk.risk_distribution);
+                const resRisk = await fetch(`${API_BASE_URL}/api/v1/ml/loan-risk`);
+                if (resRisk.ok) {
+                    const dataRisk = await resRisk.json();
+                    if (dataRisk && dataRisk.risk_distribution) {
+                        updateRiskChart(dataRisk.risk_distribution);
+                    }
                 }
 
             } catch (err) {
-                console.warn("API Connection Polling:", err);
+                console.warn("API Connection Offline (Showing Fallback):", err);
+                // State-driven reliability: Show fallback notice banner when API is unreachable
+                if (banner) banner.style.display = 'block';
+                if (badge) badge.innerHTML = '<span style="color:#FBBF24;">● FALLBACK MODE</span>';
             }
         }
 
@@ -286,8 +292,40 @@
         }
 
         function updateRiskChart(riskDict) {
-            const labels = Object.keys(riskDict);
-            const values = Object.values(riskDict);
+            // Ordered by SEVERITY descending with intuitive risk color semantics:
+            // Critical Risk = Dark Red (#DC2626)
+            // High Risk     = Orange (#F97316)
+            // Moderate Risk = Amber / Yellow (#FBBF24)
+            // Low Risk      = Green (#10B981)
+            const severityOrder = ['Critical Risk', 'High Risk', 'Moderate Risk', 'Low Risk'];
+            const colorMap = {
+                'Critical Risk': '#DC2626',
+                'High Risk': '#F97316',
+                'Moderate Risk': '#FBBF24',
+                'Low Risk': '#10B981'
+            };
+
+            const labels = [];
+            const values = [];
+            const backgroundColors = [];
+
+            // Add ordered categories present in dictionary
+            severityOrder.forEach(category => {
+                if (riskDict.hasOwnProperty(category)) {
+                    labels.push(category);
+                    values.push(riskDict[category]);
+                    backgroundColors.push(colorMap[category]);
+                }
+            });
+
+            // Include any unmapped categories if present
+            Object.keys(riskDict).forEach(category => {
+                if (!labels.includes(category)) {
+                    labels.push(category);
+                    values.push(riskDict[category]);
+                    backgroundColors.push('#94A3B8');
+                }
+            });
 
             if (riskChart) riskChart.destroy();
             const ctx = document.getElementById('riskChart').getContext('2d');
@@ -297,7 +335,7 @@
                     labels: labels,
                     datasets: [{
                         data: values,
-                        backgroundColor: ['#34D399', '#3B82F6', '#F59E0B', '#F87171']
+                        backgroundColor: backgroundColors
                     }]
                 },
                 options: {

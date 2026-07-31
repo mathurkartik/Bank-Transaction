@@ -528,9 +528,11 @@ class KaggleDataIntegrator:
             metro_mult = 1.8 if i <= 9 else 1.0
             operating_cost = int(np.random.randint(500000, 2000000) * metro_mult)
             
+            zones = ['Main Branch', 'North Branch', 'East Branch', 'West Branch', 'South Branch', 'Central Branch', 'IT Park Branch']
+            zone = zones[((i-1) // len(indian_cities)) % len(zones)]
             branch_data.append({
                 'branch_id': f"BR_{i:03d}",
-                'branch_name': f"{city} Main Branch",
+                'branch_name': f"{city} {zone}",
                 'city': city,
                 'region': region,
                 'country': 'India',
