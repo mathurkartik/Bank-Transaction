@@ -1,11 +1,11 @@
 from pyspark.sql import SparkSession
 import logging
+import os
 
 logger = logging.getLogger(__name__)
 
 def create_spark_session(app_name):
     """Create Spark session configured for MinIO S3A object storage & Iceberg"""
-    import os
     s3_endpoint = "http://minio:9000" if os.path.exists("/opt/airflow") else "http://localhost:9000"
     
     try:
@@ -34,8 +34,6 @@ def create_spark_session(app_name):
     except Exception as e:
         logger.error(f"Failed to create Spark session: {str(e)}")
         raise
-
-import os
 
 def get_postgres_config():
     """Get PostgreSQL connection configuration dynamically based on environment"""
