@@ -681,10 +681,6 @@ def main():
     KAGGLE_PATH = "data/raw/bank_transactions.csv"  
     OUTPUT_DIR = "data/processed"
     
-    if not os.path.exists(KAGGLE_PATH):
-        logger.warning(f"Kaggle file not found at {KAGGLE_PATH}")
-        return
-    
     limit = None if args.full else args.limit
     if not args.full:
         logger.info(f"Running in sample mode (limit: {limit} rows). Pass --full to run on the entire dataset.")
