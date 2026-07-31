@@ -29,6 +29,10 @@ def process_bronze_to_silver():
         branches = spark.read.option("header", "true").option("inferSchema", "true").csv(f"{base_path}/processed/branches.csv")
         loans = spark.read.option("header", "true").option("inferSchema", "true").csv(f"{base_path}/processed/loans.csv")
         
+        # Add quality module path
+        sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'common'))
+        from data_quality import validate_and_quarantine
+
         # Transform customers - UPDATED for Kaggle structure
         customers_silver = customers \
             .withColumn("age_group", 
@@ -48,6 +52,15 @@ def process_bronze_to_silver():
                        .otherwise("High")) \
             .withColumn("updated_timestamp", current_timestamp())
         
+        # Apply Data Quality Gate to Customers
+        customers_silver, _ = validate_and_quarantine(
+            customers_silver,
+            primary_keys=["customer_id"],
+            validation_rules=[col("account_balance") >= 0],
+            entity_name="customers",
+            base_path=base_path
+        )
+
         # Transform transactions - UPDATED for Kaggle structure
         transactions_silver = transactions \
             .withColumn("transaction_date", to_date(col("timestamp"))) \
@@ -59,6 +72,15 @@ def process_bronze_to_silver():
                        .otherwise("Large")) \
             .withColumn("updated_timestamp", current_timestamp())
         
+        # Apply Data Quality Gate to Transactions
+        transactions_silver, _ = validate_and_quarantine(
+            transactions_silver,
+            primary_keys=["transaction_id", "customer_id"],
+            validation_rules=[col("amount") > 0],
+            entity_name="transactions",
+            base_path=base_path
+        )
+
         # Transform revenue data
         revenue_silver = revenue \
             .withColumn("event_date", to_date(col("event_date"))) \
@@ -73,6 +95,15 @@ def process_bronze_to_silver():
         loans_silver = loans \
             .withColumn("start_date", to_date(col("start_date"))) \
             .withColumn("updated_timestamp", current_timestamp())
+
+        # Apply Data Quality Gate to Loans
+        loans_silver, _ = validate_and_quarantine(
+            loans_silver,
+            primary_keys=["loan_id", "customer_id"],
+            validation_rules=[col("interest_rate") >= 0, col("interest_rate") <= 30],
+            entity_name="loans",
+            base_path=base_path
+        )
         
         # Write to local storage (simulating Silver layer)
         customers_silver.write.mode("overwrite").parquet(f"{base_path}/silver/customers")

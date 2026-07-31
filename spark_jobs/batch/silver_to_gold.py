@@ -110,6 +110,10 @@ def process_silver_to_gold():
     spark = create_spark_session("SilverToGold")
     
     try:
+        # Add ML module path
+        sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'ml'))
+        from loan_default_predictor import train_and_predict_loan_defaults
+
         # Calculate KPIs
         customer_profitability, branch_performance, loan_portfolio = calculate_kpis(spark)
         
@@ -123,8 +127,16 @@ def process_silver_to_gold():
         customer_profitability.write.mode("overwrite").parquet(f"{base_path}/gold/customer_profitability")
         branch_performance.write.mode("overwrite").parquet(f"{base_path}/gold/branch_performance")
         loan_portfolio.write.mode("overwrite").parquet(f"{base_path}/gold/loan_portfolio")
+
+        # Run PySpark ML Loan Default Prediction Engine
+        try:
+            loan_risk_analytics = train_and_predict_loan_defaults(spark, base_path)
+            if loan_risk_analytics is not None:
+                write_to_postgres(spark, loan_risk_analytics, "loan_risk_analytics")
+        except Exception as ml_err:
+            logger.warning(f"⚠️ ML Prediction skipped or encountered warning: {str(ml_err)}")
         
-        logger.info("✅ Silver to Gold processing completed with Kaggle data")
+        logger.info("✅ Silver to Gold processing completed with Kaggle data & ML Predictive Risk Engine")
         
     except Exception as e:
         logger.error(f"❌ Error in Silver to Gold: {str(e)}")
