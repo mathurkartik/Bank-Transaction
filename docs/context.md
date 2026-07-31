@@ -150,3 +150,11 @@ M5/
 * **Cost-Income Ratio (CIR)**: `Total Branch Costs / Gross Revenue` (Target: < 50% = Excellent).
 * **Customer Net Profit**: `Total Revenue - Processing Costs` (₹5 fixed per transaction).
 * **Loan Portfolio Utilization**: `Outstanding Principal / Total Loan Portfolio Disbursed`.
+
+---
+
+## 🚀 7. Architecture Enhancements & Roadmap
+
+For details on the Phase 2 target architecture (including **Kafka Streaming**, **PySpark MLlib Loan Risk Engine**, **Data Quality Gates**, and **Tableau Integration**), refer to:
+* 📄 [`docs/architecture_enhancements.md`](file:///c:/Users/KartikMathur/Desktop/Project/M5/docs/architecture_enhancements.md)
+
