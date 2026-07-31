@@ -50,11 +50,14 @@ class KaggleDataIntegrator:
         try:
             skip_offset = 0
             if nrows is not None and nrows > 0:
-                # Randomly sample offset chunk to ensure data variety across runs
+                # Dynamically count total lines in CSV to prevent skipping past EOF
                 import random
-                max_possible_skip = max(0, 1000000 - nrows - 100)
-                skip_offset = random.randint(0, max_possible_skip)
-                logger.info(f"🎲 Random Kaggle Chunk Sampling: skipping first {skip_offset:,} rows for dataset variety.")
+                with open(kaggle_path, 'r', encoding='utf-8', errors='ignore') as f:
+                    file_line_count = max(0, sum(1 for _ in f) - 1)
+                max_possible_skip = max(0, file_line_count - nrows)
+                if max_possible_skip > 0:
+                    skip_offset = random.randint(0, max_possible_skip)
+                    logger.info(f"🎲 Random Kaggle Chunk Sampling: skipping first {skip_offset:,} rows for dataset variety.")
 
             # Load with optimized parameters and random chunk skip
             skip_func = (lambda x: x > 0 and x < skip_offset) if skip_offset > 0 else None
