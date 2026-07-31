@@ -31,10 +31,6 @@ jobs:
         pip install -r requirements.txt
         pip install pytest
 
-    - name: Run PyTest Automated Unit Tests
-      run: |
-        pytest tests/
-
     - name: Test Synthetic Ingestion Generator
       run: |
         python scripts/integrate_kaggle_synthetic.py --limit 1000
@@ -46,6 +42,10 @@ jobs:
     - name: Test PySpark Silver-to-Gold ETL (ML Predictive Risk Model)
       run: |
         python spark_jobs/batch/silver_to_gold.py
+
+    - name: Run PyTest Automated Unit Tests
+      run: |
+        pytest tests/
 
     - name: Verify Final Data & ML Outputs
       run: |
