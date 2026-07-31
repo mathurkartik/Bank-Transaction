@@ -38,8 +38,8 @@
 ### Decision 3: Apache Kafka Event Streaming at ~7.5 TPS
 * **Context**: Choice of event streaming mechanism for real-time transaction ingestion.
 * **Choice**: Implemented an Apache Kafka Producer (`scripts/kafka_producer.py`) and Spark Structured Streaming consumer (`spark_jobs/streaming/kafka_stream_consumer.py`) operating at ~7.5 TPS (450 transactions/minute).
-* **Honest Evaluation**: State honestly that **~7.5 TPS is well below the volume threshold where real-time event streaming is operationally or economically justified over scheduled batch processing**. Kafka was used in this artifact strictly to learn and demonstrate real-time streaming semantics (watermarking, 5-minute sliding windows, stateful aggregations).
-* **Justified Volume Threshold**: Real-time event streaming typically earns its operational and infrastructure overhead over batch processing when transaction throughput exceeds **~1,000 to 5,000+ TPS**, or when sub-second SLA requirements exist for instant automated fraud blocking.
+* **Honest Evaluation**: State honestly that ~7.5 TPS is well below where real-time event streaming is operationally or economically justified over scheduled batch processing. Kafka was used in this artifact strictly to learn and demonstrate real-time streaming semantics (watermarking, 5-minute sliding windows, stateful aggregations).
+* **Justified Trigger**: The decision to stream rather than batch is driven by the downstream consumer's latency requirement, not by a throughput number. Streaming earns its operational and infrastructure cost only when a consumer has a latency SLA that scheduled batch cannot meet — e.g. instant automated fraud-blocking or real-time balance updates. At this artifact's volume, with no such sub-second SLA, batch processing would be the correct production choice; Kafka was used here strictly to learn streaming semantics.
 
 ---
 
@@ -87,7 +87,12 @@ The following metrics are computed directly by [`scripts/profile_real_base.py`](
 * **Aggregate Real Transaction Volume**: `INR 1,650,795,731.57` `[REAL]`
 * **Mean Real Transaction Amount**: `INR 1,574.34` `[REAL]`
 * **Median Real Transaction Amount**: `INR 459.03` `[REAL]`
-* **Customer DOB Coverage**: `1,045,170 non-null values (99.68%)` `[REAL]`
-* **Customer Location Coverage**: `1,048,416 non-null values (99.99%)` `[REAL]`
+* **Observation — Right-Skew**: The mean (INR 1,574.34) sits ~3.4x above the median (INR 459.03), indicating a heavy right-skew where a thin tail of large transactions drags the average well above the typical customer. Design consequence: any risk or alerting threshold keyed to the mean transaction size will misfire; a production rule should key to the median or to percentile bands, not the arithmetic mean.
 
 *(Note: All other fields—such as loan risk categories, branch expansion events, and EMI payment streams—are synthetically derived extensions.)*
+
+---
+
+## 7. What I'd Build Next — and Why I Stopped Here
+
+The obvious next step would be to replace synthetic default labels with a real backtest harness against historical defaults, and to add a proper feature store. I deliberately stopped short of this: the marginal engineering would not change what this artifact is meant to prove (pipeline orchestration and product-technical decision-making), and the effort was better allocated elsewhere. Knowing where additional build stops adding signal is itself the product decision.
