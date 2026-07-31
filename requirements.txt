@@ -1,0 +1,8 @@
+pyspark==3.5.0
+pandas==2.0.3
+numpy==1.24.3
+faker==19.6.2
+streamlit==1.28.0
+plotly==5.15.0
+psycopg2-binary==2.9.7
+pyarrow==14.0.1

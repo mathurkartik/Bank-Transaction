@@ -1,0 +1,104 @@
+services:
+  # PostgreSQL Data Warehouse
+  postgres-warehouse:
+    image: postgres:13
+    container_name: postgres-warehouse
+    environment:
+      - POSTGRES_USER=airflow
+      - POSTGRES_PASSWORD=airflow
+      - POSTGRES_DB=bank_warehouse
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_warehouse_data:/var/lib/postgresql/data
+      - ./sql_warehouse:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U airflow -d bank_warehouse"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Airflow Webserver
+  airflow-webserver:
+    build:
+      context: .
+      dockerfile: Dockerfile.airflow
+    image: custom-airflow-spark:latest
+    container_name: airflow-webserver
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres-warehouse:5432/bank_warehouse
+      - AIRFLOW__CORE__DAGS_FOLDER=/opt/airflow/dags
+      - AIRFLOW__CORE__LOAD_EXAMPLES=false
+      - AIRFLOW__CORE__ENABLE_XCOM_PICKLING=true
+      - _AIRFLOW_DB_UPGRADE=true
+      - _AIRFLOW_WWW_USER_CREATE=true
+      - _AIRFLOW_WWW_USER_USERNAME=admin
+      - _AIRFLOW_WWW_USER_PASSWORD=admin
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/logs:/opt/airflow/logs
+      - ./spark_jobs:/opt/airflow/spark_jobs
+      - ./scripts:/opt/airflow/scripts
+      - ./data:/opt/airflow/data
+    ports:
+      - "8080:8080"
+    command: >
+      bash -c "
+        airflow db init &&
+        airflow users create --username admin --password admin --firstname Admin --lastname User --role Admin --email admin@example.com || true &&
+        airflow webserver
+      "
+    depends_on:
+      postgres-warehouse:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Airflow Scheduler
+  airflow-scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile.airflow
+    image: custom-airflow-spark:latest
+    container_name: airflow-scheduler
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres-warehouse:5432/bank_warehouse
+      - AIRFLOW__CORE__DAGS_FOLDER=/opt/airflow/dags
+      - AIRFLOW__CORE__LOAD_EXAMPLES=false
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/logs:/opt/airflow/logs
+      - ./spark_jobs:/opt/airflow/spark_jobs
+      - ./scripts:/opt/airflow/scripts
+      - ./data:/opt/airflow/data
+    depends_on:
+      airflow-webserver:
+        condition: service_healthy
+    command: airflow scheduler
+
+  # Streamlit Dashboard
+  streamlit:
+    image: python:3.9-slim
+    container_name: streamlit-dashboard
+    ports:
+      - "8501:8501"
+    working_dir: /app
+    volumes:
+      - ./streamlit_app:/app
+      - ./data:/data
+    command: >
+      bash -c "
+        pip install streamlit pandas plotly psycopg2-binary &&
+        streamlit run dashboard.py --server.port=8501 --server.address=0.0.0.0
+      "
+    depends_on:
+      postgres-warehouse:
+        condition: service_healthy
+
+volumes:
+  postgres_warehouse_data:
